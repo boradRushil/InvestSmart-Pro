@@ -10,35 +10,60 @@ public class InvestmentFirm {
     }
 
     // Define a sector
-    public void defineSector(String sectorName) {
-        // Implementation
+    public boolean defineSector(String sectorName) {
+        Sector sector = new Sector();
+
+        return sector.addSector(sectorName);
     }
 
     // Define a stock
-    public void defineStock(String companyName, String stockSymbol, String sector) {
-        // Implementation
+    public boolean defineStock(String companyName, String stockSymbol, String sector) {
+        Stock stock = new Stock();
+
+        return stock.addStock(companyName, stockSymbol, sector);
     }
 
     // Set stock price
-    public void setStockPrice(String stockSymbol, double perSharePrice) {
-        // Implementation
+    public boolean setStockPrice(String stockSymbol, double perSharePrice) {
+        Stock stock = new Stock();
+
+        return stock.updateStockPrice(stockSymbol, perSharePrice);
     }
 
     // Define an investment profile
     public void defineProfile(String profileName, Map<String, Integer> sectorHoldings) {
-        // Implementation
+        InvestmentProfile profile = new InvestmentProfile(profileName, sectorHoldings);
+        boolean success = profile.save();
+        if (success) {
+            System.out.println("Profile defined successfully.");
+        } else {
+            System.out.println("Failed to define profile.");
+        }
     }
 
     // Add a financial advisor
-    public int addAdvisor(String advisorName) {
+    public void addAdvisor(String advisorName) {
         // Implementation
-        return 0; // Placeholder return
+        Advisor advisor = new Advisor(advisorName);
+        int advisorId = advisor.save();
+        if (advisorId > 0) {
+            System.out.println("Advisor added successfully with ID: " + advisorId);
+        } else {
+            System.out.println("Failed to add advisor.");
+        }
     }
 
     // Add a client
     public int addClient(String clientName) {
         // Implementation
-        return 0; // Placeholder return
+        Client client = new Client(clientName);
+        int clientId = client.save();
+        if (clientId > 0) {
+            System.out.println("Client added successfully with ID: " + clientId);
+        } else {
+            System.out.println("Failed to add client.");
+        }
+        return clientId;
     }
 
     // Create an account
