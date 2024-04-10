@@ -4,61 +4,36 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class Stock {
-    private String companyName;
-    private String stockSymbol;
-    private String sector;
 
-    public Stock(String companyName, String stockSymbol, String sector) {
-        this.companyName = companyName;
-        this.stockSymbol = stockSymbol;
-        this.sector = sector;
-    }
-
-    // Getters and Setters
     public boolean addStock(String companyName, String stockSymbol, String sectorName) {
-        if (companyName == null || companyName.trim().isEmpty()) {
-            System.out.println("Error: Company name cannot be null or empty.");
+        if (companyName == null || companyName.trim().isEmpty() ||
+                stockSymbol == null || stockSymbol.trim().isEmpty() ||
+                sectorName == null || sectorName.trim().isEmpty()) {
+            System.out.println("Error: Company name, stock symbol, and sector name cannot be null or empty.");
             return false;
         }
 
-        if (stockSymbol == null || stockSymbol.trim().isEmpty()) {
-            System.out.println("Error: Stock symbol cannot be null or empty.");
+        if (!DatabaseHelper.entityExistsByName("Sector", "SectorName", sectorName)) {
+            System.out.println("Error: Sector does not exist.");
             return false;
         }
 
-        if (sectorName == null || sectorName.trim().isEmpty()) {
-            System.out.println("Error: Sector name cannot be null or empty.");
+        if (DatabaseHelper.entityExistsByName("Stock", "StockSymbol", stockSymbol)) {
+            System.out.println("Stock already exists.");
             return false;
         }
 
+        Integer sectorId = DatabaseHelper.getProfileIdByName(sectorName); // Assuming this method now correctly fetches the sector ID
+        if (sectorId == null) {
+            System.out.println("Error: Failed to retrieve sector ID.");
+            return false;
+        }
 
-        String sectorQuery = "SELECT SectorID FROM Sector WHERE SectorName = ?";
-        String stockExistsQuery = "SELECT COUNT(*) FROM Stock WHERE StockSymbol = ?";
         String insertQuery = "INSERT INTO Stock (CompanyName, StockSymbol, SectorID) VALUES (?, ?, ?)";
 
         try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement sectorStmt = conn.prepareStatement(sectorQuery);
-             PreparedStatement stockExistsStmt = conn.prepareStatement(stockExistsQuery);
              PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
 
-            // Check if sector exists
-            sectorStmt.setString(1, sectorName);
-            ResultSet rsSector = sectorStmt.executeQuery();
-            if (!rsSector.next()) {
-                System.out.println("Sector does not exist.");
-                return false;
-            }
-            int sectorId = rsSector.getInt("SectorID");
-
-            // Check if stock exists
-            stockExistsStmt.setString(1, stockSymbol);
-            ResultSet rsStock = stockExistsStmt.executeQuery();
-            if (rsStock.next() && rsStock.getInt(1) > 0) {
-                System.out.println("Stock already exists.");
-                return false;
-            }
-
-            // Insert new stock
             insertStmt.setString(1, companyName);
             insertStmt.setString(2, stockSymbol);
             insertStmt.setInt(3, sectorId);
@@ -70,8 +45,7 @@ public class Stock {
             return false;
         }
     }
-
-    public boolean stockPrice(String stockSymbol, double perSharePrice) {
+    public boolean updateStockPrice(String stockSymbol, double perSharePrice) {
         if (stockSymbol == null || stockSymbol.trim().isEmpty() || perSharePrice <= 0) {
             System.out.println("Stock symbol cannot be null or empty, and price must be positive.");
             return false;
