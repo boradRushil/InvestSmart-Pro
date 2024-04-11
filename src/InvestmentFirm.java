@@ -2,38 +2,36 @@ import java.util.Map;
 import java.util.Set;
 
 public class InvestmentFirm {
-    // Attributes
-
+    Sector sector = new Sector();
+    Stock stock = new Stock();
+    InvestmentProfile profile = new InvestmentProfile();
     // Constructor
     public InvestmentFirm() {
-        // Initialization code
+
     }
 
     // Define a sector
     public boolean defineSector(String sectorName) {
-        Sector sector = new Sector();
 
         return sector.addSector(sectorName);
     }
 
     // Define a stock
     public boolean defineStock(String companyName, String stockSymbol, String sector) {
-        Stock stock = new Stock();
 
         return stock.addStock(companyName, stockSymbol, sector);
     }
 
     // Set stock price
     public boolean setStockPrice(String stockSymbol, double perSharePrice) {
-        Stock stock = new Stock();
 
         return stock.updateStockPrice(stockSymbol, perSharePrice);
     }
 
     // Define an investment profile
     public void defineProfile(String profileName, Map<String, Integer> sectorHoldings) {
-        InvestmentProfile profile = new InvestmentProfile(profileName, sectorHoldings);
-        boolean success = profile.save();
+
+        boolean success = profile.updateInvestmentProfile(profileName, sectorHoldings);
         if (success) {
             System.out.println("Profile defined successfully.");
         } else {
@@ -56,8 +54,8 @@ public class InvestmentFirm {
     // Add a client
     public int addClient(String clientName) {
         // Implementation
-        Client client = new Client(clientName);
-        int clientId = client.save();
+        Client client = new Client();
+        int clientId = client.save(clientName);
         if (clientId > 0) {
             System.out.println("Client added successfully with ID: " + clientId);
         } else {
@@ -69,17 +67,32 @@ public class InvestmentFirm {
     // Create an account
     public int createAccount(int clientId, int financialAdvisor, String accountName, String profileType, boolean reinvest) {
         // Implementation
-        return 0; // Placeholder return
+        AccountManager account = new AccountManager();
+        return account.addAccount(clientId,financialAdvisor,accountName,profileType,reinvest); // Placeholder return
     }
 
     // Trade shares
-    public void tradeShares(int account, String stockSymbol, int sharesExchanged) {
+    public boolean tradeShares(int account, String stockSymbol, int sharesExchanged) {
         // Implementation
+        if (account <= 0 || stockSymbol == null || stockSymbol.isEmpty()) {
+            System.out.println("Invalid account ID or stock symbol.");
+            return false;
+        }
+
+        if (sharesExchanged == 0) {
+            System.out.println("Number of shares exchanged cannot be zero.");
+            return false;
+        }
+
+        // Delegate transaction handling to TransactionManager class
+        return TransactionManager.tradeShares(account, stockSymbol, sharesExchanged);
     }
 
     // Change advisor
     public void changeAdvisor(int accountId, int newAdvisorId) {
         // Implementation
+        AccountManager account = new AccountManager();
+        boolean success = account.changeAdvisor(accountId, newAdvisorId);
     }
 
     // Report account value

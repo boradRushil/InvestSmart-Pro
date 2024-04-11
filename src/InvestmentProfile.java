@@ -3,79 +3,80 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.sql.Statement;
 
 public class InvestmentProfile {
-    private int profileId;
-    private String profileName;
-    private Map<String, Integer> sectorHoldings; // Sector name to percentage
 
-    // Constructor
-    public InvestmentProfile(String profileName, Map<String, Integer> sectorHoldings) {
-        this.profileName = profileName;
-        this.sectorHoldings = sectorHoldings;
-    }
+    public InvestmentProfile() {
 
+ }
     // Save the profile and its sector holdings to the database
-    public boolean save() {
-        final String profileInsertQuery = "INSERT INTO InvestmentProfile (ProfileName) VALUES (?)";
-        final String sectorInsertQuery = "INSERT INTO ProfileSector (ProfileID, SectorID, Percentage) VALUES (?, ?, ?)";
+    public boolean updateInvestmentProfile(String profileName, Map<String, Integer> sectorHoldings) {
+        if (profileName == null || profileName.trim().isEmpty() || sectorHoldings == null) {
+            System.out.println("Profile name and sector holdings map cannot be null or empty.");
+            return false;
+        }
 
-        Connection conn = DatabaseConnector.getConnection();
-        try (
-             PreparedStatement profileStmt = conn.prepareStatement(profileInsertQuery, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        // Ensure "cash" sector is included in the sector holdings map
+        if (!sectorHoldings.containsKey("cash")) {
+            sectorHoldings.put("cash", 0);
+        }
 
-            conn.setAutoCommit(false); // Start transaction
+        // Calculate total percentage for validation
+        int totalPercentage = 0;
+        for (int percentage : sectorHoldings.values()) {
+            totalPercentage += percentage;
+        }
+
+        // Ensure total percentage does not exceed 100%
+        if (totalPercentage != 100) {
+            System.out.println("Total percentage exceeds 100%. Please adjust sector holdings.");
+            return false;
+        }
+
+        // Insert the profile into the database
+        String insertQuery = "INSERT INTO InvestmentProfile (ProfileName) VALUES (?)";
+
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement insertStmt = conn.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
 
             // Insert the profile
-            profileStmt.setString(1, this.profileName);
-            int affectedRows = profileStmt.executeUpdate();
+            insertStmt.setString(1, profileName);
+            insertStmt.executeUpdate();
 
-            if (affectedRows == 0) {
-                conn.rollback();
+            // Get the generated profile ID
+            ResultSet generatedKeys = insertStmt.getGeneratedKeys();
+            int profileId;
+            if (generatedKeys.next()) {
+                profileId = generatedKeys.getInt(1);
+            } else {
+                System.out.println("Failed to get the generated profile ID.");
                 return false;
             }
 
-            try (ResultSet generatedKeys = profileStmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    this.profileId = generatedKeys.getInt(1);
-                } else {
-                    conn.rollback();
+            // Insert sector holdings into the database
+            String sectorInsertQuery = "INSERT INTO ProfileSector (ProfileID, SectorID, Percentage) VALUES (?, ?, ?)";
+            for (Map.Entry<String, Integer> entry : sectorHoldings.entrySet()) {
+                int sectorId = DatabaseHelper.getProfileIdByName(entry.getKey());
+                if (sectorId == -1) {
+                    System.out.println("Failed to retrieve sector ID for sector: " + entry.getKey());
                     return false;
                 }
-            }
 
-            // Insert sector holdings for the profile
-            try (PreparedStatement sectorStmt = conn.prepareStatement(sectorInsertQuery)) {
-                for (Map.Entry<String, Integer> entry : this.sectorHoldings.entrySet()) {
-                    int sectorId = DatabaseHelper.getProfileIdByName(entry.getKey());
-                    if (sectorId == -1) { // Assuming -1 indicates sector not found
-                        conn.rollback();
-                        return false;
-                    }
-
-                    sectorStmt.setInt(1, this.profileId);
-                    sectorStmt.setInt(2, sectorId);
-                    sectorStmt.setInt(3, entry.getValue());
-                    sectorStmt.executeUpdate();
+                try (PreparedStatement sectorInsertStmt = conn.prepareStatement(sectorInsertQuery)) {
+                    sectorInsertStmt.setInt(1, profileId);
+                    sectorInsertStmt.setInt(2, sectorId);
+                    sectorInsertStmt.setInt(3, entry.getValue());
+                    sectorInsertStmt.executeUpdate();
                 }
             }
 
-            conn.commit(); // Commit transaction
+            System.out.println("Investment profile created successfully.");
             return true;
+
         } catch (SQLException e) {
             e.printStackTrace();
-            try {
-                conn.rollback(); // Rollback transaction on error
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
             return false;
-        } finally {
-            try {
-                conn.setAutoCommit(true); // Reset auto-commit to true
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
     }
 
