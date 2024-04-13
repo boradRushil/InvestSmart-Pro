@@ -52,9 +52,10 @@ public class PortfolioManager {
     }
 
     private static double getStockValue(Connection conn, int accountId) throws SQLException {
-        String query = "SELECT SUM(Shares * LastTradeValue) AS StockValue " +
-                "FROM Portfolio P JOIN Stock S ON P.StockSymbol = S.StockSymbol " +
-                "WHERE AccountID = ?";
+        String query = "SELECT SUM(AS.SharesOwned * S.CurrentPrice) AS StockValue " +
+                "FROM AccountStocks AS AS " +
+                "JOIN Stock AS S ON AS.StockSymbol = S.StockSymbol " +
+                "WHERE AS.AccountID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, accountId);
             ResultSet rs = stmt.executeQuery();
@@ -78,8 +79,13 @@ public class PortfolioManager {
     }
 
     private static double getPortfolioValue(Connection conn, int advisorId) throws SQLException {
-        String query = "SELECT SUM(StockValue + CashBalance) AS PortfolioValue " +
-                "FROM InvestmentAccount WHERE AdvisorID = ?";
+        String query = "SELECT SUM(IA.CashBalance + COALESCE(StockValue, 0)) AS PortfolioValue " +
+                "FROM InvestmentAccount AS IA " +
+                "LEFT JOIN (SELECT AccountID, SUM(AS.SharesOwned * S.CurrentPrice) AS StockValue " +
+                "           FROM AccountStocks AS AS " +
+                "           JOIN Stock AS S ON AS.StockSymbol = S.StockSymbol " +
+                "           GROUP BY AccountID) AS AV ON IA.AccountID = AV.AccountID " +
+                "WHERE IA.AdvisorID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, advisorId);
             ResultSet rs = stmt.executeQuery();
