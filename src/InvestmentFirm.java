@@ -55,7 +55,7 @@ public class InvestmentFirm {
     public int addClient(String clientName) {
         // Implementation
         Client client = new Client();
-        int clientId = client.save(clientName);
+        int clientId = client.getClientID(clientName);
         if (clientId > 0) {
             System.out.println("Client added successfully with ID: " + clientId);
         } else {
@@ -98,31 +98,31 @@ public class InvestmentFirm {
     // Report account value
     public double accountValue(int accountId) {
         // Implementation
-        return 0.0; // Placeholder return
+        return PortfolioManager.getAccountValue(accountId); // Placeholder return
     }
 
     // Report market value managed by an advisor
     public double advisorPortfolioValue(int advisorId) {
         // Implementation
-        return 0.0; // Placeholder return
+        return PortfolioManager.getAdvisorPortfolioValue(advisorId); // Placeholder return
     }
 
     // Report profit for a client
     public Map<Integer, Double> investorProfit(int clientId) {
         // Implementation
-        return null; // Placeholder return
+        return ManageProfits.getInvestorProfit(clientId); // Placeholder return
     }
 
     // Compute the proportion of account value held in each sector
     public Map<String, Integer> profileSectorWeights(int accountId) {
         // Implementation
-        return null; // Placeholder return
+        return SectorWeights.profileSectorWeights(accountId); // Placeholder return
     }
 
     // Identify accounts diverging from their target investment profile
     public Set<Integer> divergentAccounts(int tolerance) {
         // Implementation
-        return null; // Placeholder return
+        return ReportAccounts.divergentAccounts(tolerance); // Placeholder return
     }
 
     // Disburse dividend and buy shares as necessary
