@@ -12,7 +12,7 @@ public class Client {
     }
 
     // Save the client to the database
-    public int save(String clientName) {
+    public int getClientID(String clientName) {
         int clientId = 0;
         final String insertQuery = "INSERT INTO Client (Name) VALUES (?)";
         try (Connection conn = DatabaseConnector.getConnection();
@@ -34,5 +34,4 @@ public class Client {
         return -1; // Return -1 to indicate failure
     }
 
-    // Getters and Setters...
 }

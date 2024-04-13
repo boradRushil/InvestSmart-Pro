@@ -6,8 +6,18 @@ import java.sql.SQLException;
 public class TransactionManager {
 
     public static boolean tradeShares(int accountId, String stockSymbol, int sharesExchanged) {
-        if (accountId <= 0 || stockSymbol == null || stockSymbol.isEmpty() || sharesExchanged == 0) {
-            System.out.println("Invalid account ID, stock symbol, or number of shares exchanged.");
+        if ( stockSymbol == null || stockSymbol.isEmpty()|| stockSymbol.isBlank()){
+            System.out.println("Stock symbol cannot be null or empty.");
+            return false;
+        }
+
+        if (sharesExchanged == 0) {
+            System.out.println("Shares exchanged cannot be zero.");
+            return false;
+        }
+
+        if (accountId <= 0 ||!DatabaseHelper.entityExistsById("InvestmentAccount", "AccountID", accountId)) {
+            System.out.println("Invalid account ID.");
             return false;
         }
 
@@ -39,7 +49,7 @@ public class TransactionManager {
                 updateCashBalance(conn, accountId, transactionValue);
             } else {
                 // Buy or sell shares
-                updateStockHoldings(conn, accountId, stockSymbol, sharesExchanged);
+                updateStockHoldingsOnTransaction(conn, accountId, stockSymbol, sharesExchanged);
                 updateCashBalance(conn, accountId, -transactionValue); // Deduct transaction value from cash balance
             }
 
@@ -52,7 +62,7 @@ public class TransactionManager {
         }
     }
 
-    private static double getLastTradeValue(Connection conn, String stockSymbol) throws SQLException {
+    public static double getLastTradeValue(Connection conn, String stockSymbol) throws SQLException {
         String query = "SELECT CurrentPrice FROM Stock WHERE StockSymbol = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, stockSymbol);
@@ -85,15 +95,49 @@ public class TransactionManager {
         }
     }
 
-    private static void updateStockHoldings(Connection conn, int accountId, String stockSymbol, int sharesExchanged) throws SQLException {
-        String query = "INSERT INTO accountstocks (AccountID, StockSymbol, SharesOwned) VALUES (?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE SharesOwned = SharesOwned + ?";
+    private static void updateStockHoldings(Connection conn, int accountId, String stockSymbol, int sharesExchanged, double newACB) throws SQLException {
+        String query = "INSERT INTO AccountStocks (AccountID, StockSymbol, SharesOwned, ACB) VALUES (?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE SharesOwned = SharesOwned + ?, ACB = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, accountId);
             stmt.setString(2, stockSymbol);
             stmt.setInt(3, sharesExchanged);
-            stmt.setInt(4, sharesExchanged);
+            stmt.setDouble(4, newACB);
+            stmt.setInt(5, sharesExchanged);
+            stmt.setDouble(6, newACB);
             stmt.executeUpdate();
         }
     }
+
+    private static void updateStockHoldingsOnTransaction(Connection conn, int accountId, String stockSymbol, int sharesExchanged) throws SQLException {
+        try {
+            double sharePrice = getLastTradeValue(conn, stockSymbol);
+            double transactionValue = sharePrice * sharesExchanged;
+
+            // Update stock holdings based on transaction type
+            if (sharesExchanged > 0) {
+                // Buy shares: Update shares owned and calculate ACB
+                double currentACB = DatabaseHelper.getAverageCostBase(accountId, stockSymbol);
+                double newACB = calculateNewACB(currentACB, transactionValue, sharesExchanged);
+                updateStockHoldings(conn, accountId, stockSymbol, sharesExchanged, newACB);
+            } else if (sharesExchanged < 0) {
+                // Sell shares: Update shares owned
+                updateStockHoldings(conn, accountId, stockSymbol, sharesExchanged, 0); // Set shares owned to 0
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    private static double calculateNewACB(double currentACB, double transactionValue, int sharesExchanged) {
+        // Calculate the cost of new shares purchased
+        double newSharesCost = transactionValue;
+        // Add the cost of new shares to the current ACB
+        double newACB = currentACB + newSharesCost;
+        // Return the updated ACB
+        return newACB;
+    }
+
+
 }
