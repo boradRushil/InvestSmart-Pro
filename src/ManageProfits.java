@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,39 +23,20 @@ public class ManageProfits {
 
         return profitMap;
     }
-
     private static double calculateAccountProfit(Connection conn, int accountId) throws SQLException {
         double totalProfit = 0.0;
-        List<String> stocks = getStocksByAccountId(conn, accountId);
-        for (String stockSymbol : stocks) {
-            double stockProfit = calculateProfit(accountId, stockSymbol);
-            totalProfit += stockProfit;
-        }
-        return totalProfit;
-    }
-
-    private static List<String> getStocksByAccountId(Connection conn, int accountId) throws SQLException {
-        List<String> stocks = new ArrayList<>();
-        String query = "SELECT StockSymbol FROM AccountStocks WHERE AccountID = ?";
+        String query = "SELECT SUM((s.CurrentPrice - AS.ACB) * AS.SharesOwned) AS TotalProfit " +
+                "FROM AccountStocks AS AS " +
+                "JOIN Stock AS s ON AS.StockSymbol = s.Symbol " +
+                "WHERE AS.AccountID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, accountId);
             ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                stocks.add(rs.getString("StockSymbol"));
+            if (rs.next()) {
+                totalProfit = rs.getDouble("TotalProfit");
             }
         }
-        return stocks;
-    }
-
-    public static double calculateProfit(int accountId, String stockSymbol) {
-        double currentPrice = (double) DatabaseHelper.getColumnValue("Stock", "CurrentPrice", "StockSymbol", stockSymbol);
-        double sharesOwned = (double) DatabaseHelper.getColumnValue("AccountStocks", "SharesOwned", "StockSymbol", stockSymbol);
-        double acb = (double) DatabaseHelper.getColumnValue("AccountStocks", "ACB", "StockSymbol", stockSymbol);
-
-        double marketValue = currentPrice * sharesOwned;
-        double profit = marketValue - acb;
-
-        return profit;
+        return totalProfit;
     }
 
 }
