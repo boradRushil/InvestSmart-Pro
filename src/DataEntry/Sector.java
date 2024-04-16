@@ -37,11 +37,11 @@ public class Sector {
             return true;
         }
         // Check if the "cash" sector exists, and if not, insert it
-        if (!DatabaseHelper.entityExistsByName("DataEntry.Sector", "SectorName", "cash")) {
+        if (!DatabaseHelper.entityExistsByName("Sector", "SectorName", "cash")) {
             insertCashSector();
         }
 
-        if (DatabaseHelper.entityExistsByName("DataEntry.Sector", "SectorName", sectorName)) {
+        if (DatabaseHelper.entityExistsByName("Sector", "SectorName", sectorName)) {
             System.out.println("DataEntry.Sector already exists.");
             return true;
         }
