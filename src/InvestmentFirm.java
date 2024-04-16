@@ -1,5 +1,6 @@
 import DataEntry.*;
 import DatabaseAccess.TableCreator;
+import SystemAnalysis.Groups;
 import SystemAnalysis.Recommendations;
 import SystemReporting.*;
 
@@ -148,8 +149,8 @@ public class InvestmentFirm implements InvestmentFirmInterface{
 
     // Identify groups of advisors with similar investment preferences
     public Set<Set<Integer>> advisorGroups(double tolerance, int maxGroups) {
-        // Implementation
-        return null; // Placeholder return
+        Groups groups = new Groups();
+        return groups.advisorGroups(tolerance,maxGroups); // Placeholder return
     }
 
 }
