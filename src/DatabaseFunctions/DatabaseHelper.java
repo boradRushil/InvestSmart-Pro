@@ -1,23 +1,24 @@
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+package DatabaseFunctions;
+
+import DatabaseAccess.DatabaseConnector;
+
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DatabaseHelper {
 
-    // Gets the Profile ID given a profile name
-    public static Integer getProfileIdByName(String profileName) {
-        String query = "SELECT ProfileID FROM InvestmentProfile WHERE ProfileName = ?";
+    // Gets the ID given a  name
+    public static Integer getIdByName(String tableName, String nameColumn1, String nameColumn2, String name) {
+        String query = "SELECT " + nameColumn1 + " FROM " + tableName + " WHERE " + nameColumn2 + " = ?";
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, profileName);
+            stmt.setString(1, name);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt("ProfileID");
+                return rs.getInt(nameColumn1);
             }
-            return null;
+            return -1;
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
@@ -75,25 +76,22 @@ public class DatabaseHelper {
             return false;
         }
     }
-    // Gets the value of a particular column based on unique parameters
-    public static Object getColumnValue(String tableName, String targetColumn, String uniqueColumn, Object uniqueValue) {
-        String query = String.format("SELECT %s FROM %s WHERE %s = ?", targetColumn, tableName, uniqueColumn);
-        try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            if (uniqueValue instanceof Integer) {
-                stmt.setInt(1, (int) uniqueValue);
-            } else if (uniqueValue instanceof String) {
-                stmt.setString(1, (String) uniqueValue);
+    public static double getSharesOwned(Connection conn,int accountId, String stockSymbol) {
+            String query = "SELECT SharesOwned FROM AccountStocks WHERE AccountID = ? AND StockSymbol = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setInt(1, accountId);
+                stmt.setString(2, stockSymbol);
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getDouble("SharesOwned");
+                }
             }
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getObject(targetColumn);
-            }
-        } catch (SQLException e) {
+         catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return 0.0; // Return 0.0 if shares owned not found or error occurred
     }
+
 
     public static List<Integer> getInvestmentAccountIdsByClient(int clientId) {
         List<Integer> accountIds = new ArrayList<>();
@@ -111,10 +109,9 @@ public class DatabaseHelper {
         return accountIds;
     }
 
-    public static Double getAverageCostBase(int accountId, String stockSymbol) {
+    public static Double getAverageCostBase(Connection conn ,int accountId, String stockSymbol) {
         String query = "SELECT AVG(ACB) AS AverageCostBase FROM AccountStocks WHERE AccountID = ? AND StockSymbol = ?";
-        try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, accountId);
             stmt.setString(2, stockSymbol);
             ResultSet rs = stmt.executeQuery();
@@ -124,22 +121,59 @@ public class DatabaseHelper {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // Return null if ACB cannot be calculated
+        return 0.0; // Return null if ACB cannot be calculated
     }
-
-    public static List<String> getStocksByAccountId(int accountId) {
-        List<String> stocks = new ArrayList<>();
-        String query = "SELECT StockSymbol FROM AccountStocks WHERE AccountID = ?";
-        try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+    public static double getCurrentStockPrice(Connection conn, String stockSymbol) throws SQLException {
+        String query = "SELECT CurrentPrice FROM Stock WHERE StockSymbol = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, stockSymbol);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("CurrentPrice");
+            }
+        }
+        return -1; // Return -1 if no trade value found
+    }
+    public static double getCashBalance(Connection conn, int accountId) throws SQLException {
+        String query = "SELECT CashBalance FROM InvestmentAccount WHERE AccountID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, accountId);
             ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                stocks.add(rs.getString("StockSymbol"));
+            if (rs.next()) {
+                return rs.getDouble("CashBalance");
+            }
+        }
+        return 0; // Return 0 if account not found or cash balance not available
+    }
+    public static boolean updateCashBalance(Connection conn, int accountId, double amount) throws SQLException {
+        String query = "UPDATE InvestmentAccount SET CashBalance = CashBalance + ? WHERE AccountID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setDouble(1, amount);
+            stmt.setInt(2, accountId);
+            stmt.executeUpdate();
+            return true;
+        }
+    }
+
+    // Method to retrieve all account IDs from the database
+    public static List<Integer> getAllAccountIds() {
+        List<Integer> accountIds = new ArrayList<>();
+
+        try (Connection connection = DatabaseConnector.getConnection()) {
+            String query = "SELECT AccountID FROM InvestmentAccount";
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(query)) {
+                // Iterate through the result set and add account IDs to the list
+                while (resultSet.next()) {
+                    int accountId = resultSet.getInt("AccountID");
+                    accountIds.add(accountId);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            // Handle any errors gracefully
         }
-        return stocks;
+
+        return accountIds;
     }
 }

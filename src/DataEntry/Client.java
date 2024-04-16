@@ -1,3 +1,8 @@
+package DataEntry;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

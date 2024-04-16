@@ -1,3 +1,8 @@
+package SystemReporting;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +13,7 @@ import java.sql.SQLException;
 
 public class ManageProfits {
 
-    public static Map<Integer, Double> getInvestorProfit(int clientId) {
+    public Map<Integer, Double> getInvestorProfit(int clientId) {
         Map<Integer, Double> profitMap = new HashMap<>();
 
         try (Connection conn = DatabaseConnector.getConnection()) {

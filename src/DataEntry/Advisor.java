@@ -1,3 +1,8 @@
+package DataEntry;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,11 +22,11 @@ public class Advisor {
         }
         if (existingAdvisorId != -1) {
             System.out.println("Advisor already exists in the database : " + existingAdvisorId);
-            // Advisor already exists, return their ID
+            // DataEntry.Advisor already exists, return their ID
             return existingAdvisorId;
         }
 
-        // Advisor does not exist, insert them into the database
+        // DataEntry.Advisor does not exist, insert them into the database
         final String insertQuery = "INSERT INTO FinancialAdvisor (Name) VALUES (?)";
         try (Connection conn = DatabaseConnector.getConnection();
 

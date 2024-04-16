@@ -1,3 +1,8 @@
+package SystemReporting;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,15 +15,15 @@ public class PortfolioManager {
             System.out.println("Invalid account ID.");
             return -1;
         }
-
-        try {
-            Connection conn = DatabaseConnector.getConnection();
-
+        try(Connection conn = DatabaseConnector.getConnection()){
+            if (conn == null) {
+                throw new IllegalStateException("Database connection failed.");
+            }
             // Get the market value of stocks in the account
             double stockValue = getStockValue(conn, accountId);
 
             // Get the cash balance of the account
-            double cashBalance = getCashBalance(conn, accountId);
+            double cashBalance = DatabaseHelper.getCashBalance(conn, accountId);
 
             conn.close();
 
@@ -66,24 +71,13 @@ public class PortfolioManager {
         return 0; // Return 0 if no stocks found or account not found
     }
 
-    private static double getCashBalance(Connection conn, int accountId) throws SQLException {
-        String query = "SELECT CashBalance FROM InvestmentAccount WHERE AccountID = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, accountId);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getDouble("CashBalance");
-            }
-        }
-        return 0; // Return 0 if account not found or cash balance not available
-    }
 
     private static double getPortfolioValue(Connection conn, int advisorId) throws SQLException {
-        String query = "SELECT SUM(IA.CashBalance + COALESCE(StockValue, 0)) AS PortfolioValue " +
+        String query = "SELECT SUM(IA.CashBalance + COALESCE(AV.StockValue, 0)) AS PortfolioValue " +
                 "FROM InvestmentAccount AS IA " +
                 "LEFT JOIN (SELECT AccountID, SUM(AS.SharesOwned * S.CurrentPrice) AS StockValue " +
-                "           FROM AccountStocks AS AS " +
-                "           JOIN Stock AS S ON AS.StockSymbol = S.StockSymbol " +
+                "           FROM AccountStocks AS AS1 " +
+                "           JOIN Stock AS S ON AS1.StockSymbol = S.StockSymbol " +
                 "           GROUP BY AccountID) AS AV ON IA.AccountID = AV.AccountID " +
                 "WHERE IA.AdvisorID = ?";
         try (PreparedStatement stmt = conn.prepareStatement(query)) {

@@ -1,3 +1,7 @@
+package SystemReporting;
+
+import DatabaseAccess.DatabaseConnector;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ReportAccounts {
-    public static Set<Integer> divergentAccounts(int tolerance) {
+    public Set<Integer> divergentAccounts(int tolerance) {
         Set<Integer> divergentAccountIds = new HashSet<>();
 
         // Query to get all investment account IDs

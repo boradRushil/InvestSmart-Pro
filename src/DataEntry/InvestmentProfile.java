@@ -1,3 +1,8 @@
+package DataEntry;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,27 +17,7 @@ public class InvestmentProfile {
  }
     // Save the profile and its sector holdings to the database
     public boolean updateInvestmentProfile(String profileName, Map<String, Integer> sectorHoldings) {
-        if (profileName == null || profileName.trim().isEmpty() || sectorHoldings == null) {
-            System.out.println("Profile name and sector holdings map cannot be null or empty.");
-            return false;
-        }
-
-        // Ensure "cash" sector is included in the sector holdings map
-        if (!sectorHoldings.containsKey("cash")) {
-            sectorHoldings.put("cash", 0);
-        }
-
-        // Calculate total percentage for validation
-        int totalPercentage = 0;
-        for (int percentage : sectorHoldings.values()) {
-            totalPercentage += percentage;
-        }
-
-        // Ensure total percentage does not exceed 100%
-        if (totalPercentage != 100) {
-            System.out.println("Total percentage exceeds 100%. Please adjust sector holdings.");
-            return false;
-        }
+        if (validateProfile(profileName, sectorHoldings)) return false;
 
         // Insert the profile into the database
         String insertQuery = "INSERT INTO InvestmentProfile (ProfileName) VALUES (?)";
@@ -57,7 +42,7 @@ public class InvestmentProfile {
             // Insert sector holdings into the database
             String sectorInsertQuery = "INSERT INTO ProfileSector (ProfileID, SectorID, Percentage) VALUES (?, ?, ?)";
             for (Map.Entry<String, Integer> entry : sectorHoldings.entrySet()) {
-                int sectorId = DatabaseHelper.getProfileIdByName(entry.getKey());
+                int sectorId = DatabaseHelper.getIdByName("Sector","SectorID","SectorName",entry.getKey());
                 if (sectorId == -1) {
                     System.out.println("Failed to retrieve sector ID for sector: " + entry.getKey());
                     return false;
@@ -79,6 +64,32 @@ public class InvestmentProfile {
             return false;
         }
     }
+
+    private static boolean validateProfile(String profileName, Map<String, Integer> sectorHoldings) {
+        if (profileName == null || profileName.trim().isEmpty() || sectorHoldings == null) {
+            System.out.println("Profile name and sector holdings map cannot be null or empty.");
+            return true;
+        }
+
+        // Ensure "cash" sector is included in the sector holdings map
+        if (!sectorHoldings.containsKey("cash")) {
+            sectorHoldings.put("cash", 0);
+        }
+
+        // Calculate total percentage for validation
+        int totalPercentage = 0;
+        for (int percentage : sectorHoldings.values()) {
+            totalPercentage += percentage;
+        }
+
+        // Ensure total percentage does not exceed 100%
+        if (totalPercentage != 100) {
+            System.out.println("Total percentage exceeds 100%. Please adjust sector holdings.");
+            return true;
+        }
+        return false;
+    }
+
 
 
 }

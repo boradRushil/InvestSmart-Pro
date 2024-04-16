@@ -1,3 +1,8 @@
+package DataEntry;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -6,35 +11,16 @@ import java.sql.Statement;
 
 public class AccountManager {
 
-    public int addAccount(int clientId, int advisorId, String accountName, String profileName, boolean reinvest) {
+    public int addAccount(int clientId, int advisorId, String accountName, String profileName, boolean reinvest) throws SQLException{
 
-        if (accountName == null || accountName.trim().isEmpty()) {
-            System.out.println("Account name cannot be null or empty, and initial cash balance cannot be negative.");
-            return -1; // Return -1 to indicate failure
-        }
-
-        if (!DatabaseHelper.entityExistsById("Client", "ClientID", clientId)) {
-            System.out.println("Client does not exist.");
-            return -1; // Return -1 to indicate failure
-        }
-
-        if (!DatabaseHelper.entityExistsById("FinancialAdvisor", "AdvisorID", advisorId)) {
-            System.out.println("Financial advisor does not exist.");
-            return -1; // Return -1 to indicate failure
-        }
-
-        Integer profileId = DatabaseHelper.getProfileIdByName(profileName);
+        Integer profileId = DatabaseHelper.getIdByName("InvestmentProfile","ProfileID","ProfileName", profileName);
         if (profileId == null) {
             System.out.println("Investment profile does not exist.");
             return -1; // Return -1 to indicate failure
         }
+        validateAccountDetails(clientId, advisorId, accountName, profileName);
 
-        if (!DatabaseHelper.isAccountNameUniqueForClient(accountName, clientId)) {
-            System.out.println("An account with this name already exists for the client.");
-            return -1; // Return -1 to indicate failure
-        }
-
-        String insertQuery = "INSERT INTO InvestmentAccount (ClientID, AdvisorID, ProfileID, AccountName, ReinvestDividends) VALUES (?, ?, ?, ?, ?, ?)";
+        String insertQuery = "INSERT INTO InvestmentAccount (ClientID, AdvisorID, ProfileID, AccountName, ReinvestDividends, CashBalance) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement insertStmt = conn.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
@@ -44,6 +30,7 @@ public class AccountManager {
             insertStmt.setInt(3, profileId);
             insertStmt.setString(4, accountName);
             insertStmt.setBoolean(5, reinvest);
+            insertStmt.setInt(6, 0);
             insertStmt.executeUpdate();
 
             ResultSet generatedKeys = insertStmt.getGeneratedKeys();
@@ -61,7 +48,30 @@ public class AccountManager {
         }
     }
 
-    public static boolean changeAdvisor(int accountId, int newAdvisorId) {
+    private boolean validateAccountDetails(int clientId, int advisorId, String accountName, String profileName) {
+        if (accountName == null || accountName.trim().isEmpty()) {
+            System.out.println("Account name cannot be null or empty, and initial cash balance cannot be negative.");
+            return false;
+        }
+
+        if (!DatabaseHelper.entityExistsById("Client", "ClientID", clientId)) {
+            System.out.println("DataEntry.Client does not exist.");
+            return false;
+        }
+
+        if (!DatabaseHelper.entityExistsById("FinancialAdvisor", "AdvisorID", advisorId)) {
+            System.out.println("Financial advisor does not exist.");
+            return false;
+        }
+
+        if (!DatabaseHelper.isAccountNameUniqueForClient(accountName, clientId)) {
+            System.out.println("An account with this name already exists for the client.");
+            return false;
+        }
+        return true;
+    }
+
+    public boolean changeAdvisor(int accountId, int newAdvisorId) {
         if (accountId <= 0 || newAdvisorId <= 0) {
             System.out.println("Invalid account ID or advisor ID.");
             return false;

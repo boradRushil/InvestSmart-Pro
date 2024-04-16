@@ -1,18 +1,24 @@
+import DataEntry.*;
+import DatabaseAccess.TableCreator;
+import SystemAnalysis.Recommendations;
+import SystemReporting.*;
+
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
 
-public class InvestmentFirm {
-    Sector sector = new Sector();
+
+public class InvestmentFirm implements InvestmentFirmInterface{
     Stock stock = new Stock();
-    InvestmentProfile profile = new InvestmentProfile();
     // Constructor
     public InvestmentFirm() {
-
+        // Create tables in the database
+        TableCreator.createTables();
     }
 
     // Define a sector
     public boolean defineSector(String sectorName) {
-
+        Sector sector = new Sector();
         return sector.addSector(sectorName);
     }
 
@@ -29,7 +35,8 @@ public class InvestmentFirm {
     }
 
     // Define an investment profile
-    public void defineProfile(String profileName, Map<String, Integer> sectorHoldings) {
+    public boolean defineProfile(String profileName, Map<String, Integer> sectorHoldings) {
+        InvestmentProfile profile = new InvestmentProfile();
 
         boolean success = profile.updateInvestmentProfile(profileName, sectorHoldings);
         if (success) {
@@ -37,27 +44,28 @@ public class InvestmentFirm {
         } else {
             System.out.println("Failed to define profile.");
         }
+        return success;
     }
 
     // Add a financial advisor
-    public void addAdvisor(String advisorName) {
+    public int addAdvisor(String advisorName) {
         // Implementation
-        Advisor advisor = new Advisor(advisorName);
-        int advisorId = advisor.save();
+        Advisor advisor = new Advisor();
+        int advisorId = advisor.getAdvisorID(advisorName);
         if (advisorId > 0) {
-            System.out.println("Advisor added successfully with ID: " + advisorId);
+            System.out.println("DataEntry.Advisor added successfully with ID: " + advisorId);
         } else {
             System.out.println("Failed to add advisor.");
         }
+        return advisorId;
     }
 
     // Add a client
     public int addClient(String clientName) {
-        // Implementation
         Client client = new Client();
         int clientId = client.getClientID(clientName);
         if (clientId > 0) {
-            System.out.println("Client added successfully with ID: " + clientId);
+            System.out.println("DataEntry.Client added successfully with ID: " + clientId);
         } else {
             System.out.println("Failed to add client.");
         }
@@ -65,34 +73,30 @@ public class InvestmentFirm {
     }
 
     // Create an account
-    public int createAccount(int clientId, int financialAdvisor, String accountName, String profileType, boolean reinvest) {
+    public int createAccount(int clientId, int financialAdvisor, String accountName, String profileType, boolean reinvest) throws SQLException {
         // Implementation
         AccountManager account = new AccountManager();
+        int accountId = account.addAccount(clientId, financialAdvisor, accountName, profileType, reinvest);
+        if (accountId > 0) {
+            System.out.println("Account created successfully with ID: " + accountId);
+        } else {
+            System.out.println("Failed to create account.");
+        }
         return account.addAccount(clientId,financialAdvisor,accountName,profileType,reinvest); // Placeholder return
     }
 
     // Trade shares
     public boolean tradeShares(int account, String stockSymbol, int sharesExchanged) {
-        // Implementation
-        if (account <= 0 || stockSymbol == null || stockSymbol.isEmpty()) {
-            System.out.println("Invalid account ID or stock symbol.");
-            return false;
-        }
-
-        if (sharesExchanged == 0) {
-            System.out.println("Number of shares exchanged cannot be zero.");
-            return false;
-        }
-
         // Delegate transaction handling to TransactionManager class
-        return TransactionManager.tradeShares(account, stockSymbol, sharesExchanged);
+        TransactionManager transactionManager = new TransactionManager();
+        return transactionManager.tradeShares(account, stockSymbol, sharesExchanged);
     }
 
     // Change advisor
-    public void changeAdvisor(int accountId, int newAdvisorId) {
-        // Implementation
+    public boolean changeAdvisor(int accountId, int newAdvisorId) {
         AccountManager account = new AccountManager();
-        boolean success = account.changeAdvisor(accountId, newAdvisorId);
+
+        return account.changeAdvisor(accountId, newAdvisorId);
     }
 
     // Report account value
@@ -109,7 +113,8 @@ public class InvestmentFirm {
 
     // Report profit for a client
     public Map<Integer, Double> investorProfit(int clientId) {
-        // Implementation
+
+        ManageProfits ManageProfits = new ManageProfits();
         return ManageProfits.getInvestorProfit(clientId); // Placeholder return
     }
 
@@ -121,14 +126,15 @@ public class InvestmentFirm {
 
     // Identify accounts diverging from their target investment profile
     public Set<Integer> divergentAccounts(int tolerance) {
-        // Implementation
-        return ReportAccounts.divergentAccounts(tolerance); // Placeholder return
+        ReportAccounts reportAccounts = new ReportAccounts();
+        return reportAccounts.divergentAccounts(tolerance); // Placeholder return
     }
 
     // Disburse dividend and buy shares as necessary
-    public int disburseDividend(String stockSymbol, double dividendPerShare) {
-        // Implementation
-        return 0; // Placeholder return
+    public int disburseDividend(String stockSymbol, double dividendPerShare) throws SQLException {
+        ManageDividends dividends = new ManageDividends();
+
+        return dividends.disburseDividendForAccounts(stockSymbol,dividendPerShare); // Placeholder return
     }
 
     // Analyze system methods
@@ -136,7 +142,8 @@ public class InvestmentFirm {
     // Recommend stocks to buy or sell for an account
     public Map<String, Boolean> stockRecommendations(int accountId, int maxRecommendations, int numComparators) {
         // Implementation
-        return null; // Placeholder return
+        Recommendations recommendations = new Recommendations();
+        return recommendations.stockRecommendations(accountId,maxRecommendations,numComparators); // Placeholder return
     }
 
     // Identify groups of advisors with similar investment preferences

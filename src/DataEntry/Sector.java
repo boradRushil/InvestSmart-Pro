@@ -1,3 +1,8 @@
+package DataEntry;
+
+import DatabaseAccess.DatabaseConnector;
+import DatabaseFunctions.DatabaseHelper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -28,16 +33,16 @@ public class Sector {
 
     private boolean validateSector(String sectorName) {
         if (sectorName == null || sectorName.trim().isEmpty()) {
-            System.out.println("Sector name cannot be null or empty.");
+            System.out.println("DataEntry.Sector name cannot be null or empty.");
             return true;
         }
         // Check if the "cash" sector exists, and if not, insert it
-        if (!DatabaseHelper.entityExistsByName("Sector", "SectorName", "cash")) {
+        if (!DatabaseHelper.entityExistsByName("DataEntry.Sector", "SectorName", "cash")) {
             insertCashSector();
         }
 
-        if (DatabaseHelper.entityExistsByName("Sector", "SectorName", sectorName)) {
-            System.out.println("Sector already exists.");
+        if (DatabaseHelper.entityExistsByName("DataEntry.Sector", "SectorName", sectorName)) {
+            System.out.println("DataEntry.Sector already exists.");
             return true;
         }
         return false;
